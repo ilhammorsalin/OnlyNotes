@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, useScroll } from "framer-motion";
+import { motion, useScroll, PanInfo } from "framer-motion";
 import { Note } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,16 +31,30 @@ export default function ReadingMode({ note, onClose }: ReadingModeProps) {
     return () => unsubscribe();
   }, [scrollY, isUnlocked]);
 
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.y > 100) {
+      onClose();
+    }
+  };
+
   return (
     <motion.div
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      drag="y"
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={{ top: 0, bottom: 0.5 }}
+      onDragEnd={(_, info) => {
+        if (info.offset.y > 100) {
+          onClose();
+        }
+      }}
       className="fixed inset-0 z-50 bg-background flex flex-col"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
+      <div className="flex items-center justify-between p-4 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50 cursor-grab active:cursor-grabbing">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <ChevronDown className="h-6 w-6" />
         </Button>

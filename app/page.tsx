@@ -13,11 +13,18 @@ type ViewState = "home" | "library" | "social";
 export default function Home() {
   const [viewState, setViewState] = useState<ViewState>("home");
   const [activeNote, setActiveNote] = useState<Note | null>(null);
+  const [savedNotes, setSavedNotes] = useState<Note[]>([]);
   
+  const handleSaveNote = (note: Note) => {
+    if (!savedNotes.find((n) => n.id === note.id)) {
+      setSavedNotes((prev) => [note, ...prev]);
+    }
+  };
+
   // Mock current user
   const currentUser = dummyUsers[0];
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
     const threshold = 100;
     const { y } = info.offset;
 
@@ -60,7 +67,7 @@ export default function Home() {
               className="absolute inset-0 z-20 bg-background"
             >
               <LibraryView 
-                savedNotes={dummyNotes} 
+                savedNotes={savedNotes} 
                 onNoteClick={(note) => setActiveNote(note)} 
               />
             </motion.div>
@@ -79,6 +86,7 @@ export default function Home() {
             <HomeView 
               notes={dummyNotes} 
               onNoteClick={(note) => setActiveNote(note)} 
+              onSave={handleSaveNote}
             />
             
             {/* Navigation Hints */}

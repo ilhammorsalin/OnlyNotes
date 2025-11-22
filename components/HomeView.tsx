@@ -17,13 +17,18 @@ import { X, Heart, BookOpen } from "lucide-react";
 interface HomeViewProps {
   notes: Note[];
   onNoteClick: (note: Note) => void;
+  onSave: (note: Note) => void;
 }
 
-export default function HomeView({ notes, onNoteClick }: HomeViewProps) {
+export default function HomeView({ notes, onNoteClick, onSave }: HomeViewProps) {
   const [visibleNotes, setVisibleNotes] = useState(notes);
 
-  const removeNote = (id: string) => {
+  const removeNote = (id: string, direction: "left" | "right") => {
     setVisibleNotes((prev) => prev.filter((note) => note.id !== id));
+    if (direction === "right") {
+      const note = visibleNotes.find((n) => n.id === id);
+      if (note) onSave(note);
+    }
   };
 
   return (
@@ -36,7 +41,7 @@ export default function HomeView({ notes, onNoteClick }: HomeViewProps) {
               key={note.id}
               note={note}
               isTop={isTop}
-              onSwipe={() => removeNote(note.id)}
+              onSwipe={(dir) => removeNote(note.id, dir)}
               onClick={() => onNoteClick(note)}
               index={index}
               total={visibleNotes.length}
