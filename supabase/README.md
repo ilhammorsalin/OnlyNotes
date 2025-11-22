@@ -123,6 +123,39 @@ Check that you're authenticated when inserting data. For testing, you can tempor
 ALTER TABLE table_name DISABLE ROW LEVEL SECURITY;
 ```
 
+### "infinite recursion detected in policy" error
+
+If you see an error like:
+
+```
+{"code":"42P17","message":"infinite recursion detected in policy for relation \"profiles\""}
+```
+
+This means an RLS policy is querying the same table (e.g. `profiles`) using a sub-select inside the policy, which triggers recursive policy evaluation and causes Postgres to error.
+
+We fixed this by adding SECURITY DEFINER helper functions and updating policies to call them instead of performing table sub-selects. See the migration file `migrations/003_fix_rls_policies.sql` which:
+
+- Creates `public.is_admin(uid uuid)` and `public.is_banned(uid uuid)` as SECURITY DEFINER functions.
+- Rewrites policies to call the helpers (for admins and banned checks), preventing recursion.
+
+To apply the fix in an existing DB:
+
+1. Link your project and run migrations (Supabase CLI):
+
+```bash
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
+
+2. Confirm the new functions and policies exist in the SQL editor or run a quick select to validate:
+
+```sql
+SELECT public.is_admin('<your-profile-id>'::uuid);
+SELECT public.is_banned('<your-profile-id>'::uuid);
+```
+
+After this migration is applied the previous "infinite recursion" errors should be resolved.
+
 ## Next Steps
 
 After setting up the database:
