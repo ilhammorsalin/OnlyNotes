@@ -76,6 +76,7 @@ function SwipeableCard({
   index,
   total,
 }: SwipeableCardProps) {
+  const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
 
@@ -90,10 +91,17 @@ function SwipeableCard({
   ) => {
     const threshold = 100;
     if (info.offset.x > threshold) {
+      setExitDirection("right");
       onSwipe("right");
     } else if (info.offset.x < -threshold) {
+      setExitDirection("left");
       onSwipe("left");
     }
+  };
+
+  const handleButtonSwipe = (direction: "left" | "right") => {
+    setExitDirection(direction);
+    onSwipe(direction);
   };
 
   return (
@@ -110,7 +118,15 @@ function SwipeableCard({
       onDragEnd={handleDragEnd}
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1 - (total - 1 - index) * 0.05, opacity: 1, y: (total - 1 - index) * 10 }}
-      exit={{ x: x.get() < 0 ? -500 : 500, opacity: 0, transition: { duration: 0.2 } }}
+      exit={{ 
+        x: (() => {
+          if (exitDirection === "left") return -500;
+          if (exitDirection === "right") return 500;
+          return x.get() < 0 ? -500 : 500;
+        })(),
+        opacity: 0, 
+        transition: { duration: 0.2 } 
+      }}
       className="absolute w-[90%] max-w-md h-[70vh] cursor-grab active:cursor-grabbing"
     >
       <Card className="w-full h-full flex flex-col overflow-hidden border-2 border-border/50 shadow-xl bg-card relative">
@@ -157,7 +173,7 @@ function SwipeableCard({
             <div className="flex gap-4 w-full justify-center">
                 <button 
                     className="h-14 w-14 rounded-full bg-muted flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors border border-border"
-                    onClick={() => onSwipe("left")}
+                    onClick={() => handleButtonSwipe("left")}
                 >
                     <X size={28} />
                 </button>
@@ -169,7 +185,7 @@ function SwipeableCard({
                 </button>
                 <button 
                     className="h-14 w-14 rounded-full bg-muted flex items-center justify-center text-green-500 hover:bg-green-500/10 transition-colors border border-border"
-                    onClick={() => onSwipe("right")}
+                    onClick={() => handleButtonSwipe("right")}
                 >
                     <Heart size={28} />
                 </button>
