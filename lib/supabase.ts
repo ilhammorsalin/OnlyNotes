@@ -81,6 +81,8 @@ export type Database = {
           program_id: string | null
           enrollment_year: number | null
           total_score: number
+          is_admin: boolean
+          is_banned: boolean
           created_at: string
           updated_at: string
         }
@@ -92,6 +94,8 @@ export type Database = {
           program_id?: string | null
           enrollment_year?: number | null
           total_score?: number
+          is_admin?: boolean
+          is_banned?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -103,6 +107,8 @@ export type Database = {
           program_id?: string | null
           enrollment_year?: number | null
           total_score?: number
+          is_admin?: boolean
+          is_banned?: boolean
           created_at?: string
           updated_at?: string
         }

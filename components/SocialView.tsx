@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Upload, DollarSign, FileText, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ProfileBadge from "@/components/ProfileBadge";
 
 interface SocialViewProps {
   users: User[];
@@ -89,7 +90,10 @@ export default function SocialView({ users, currentUser }: SocialViewProps) {
                   <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
                 </Avatar>
                 <h2 className="text-2xl font-bold">{currentUser.name}</h2>
-                <p className="text-muted-foreground">University of Tech</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-muted-foreground">University of Tech</p>
+                  <ProfileBadge />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 w-full mb-8">
