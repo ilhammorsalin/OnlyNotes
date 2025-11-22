@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { dummyNotes, dummyUsers, Note } from "@/lib/data";
+import { Note, User } from "@/lib/data";
+import { fetchNotes, fetchLeaderboard } from "@/lib/supabase-client";
 import HomeView from "@/components/HomeView";
 import ReadingMode from "@/components/ReadingMode";
 import LibraryView from "@/components/LibraryView";
@@ -14,6 +15,24 @@ export default function Home() {
   const [viewState, setViewState] = useState<ViewState>("home");
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [savedNotes, setSavedNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch data from Supabase on mount
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      const [notesData, usersData] = await Promise.all([
+        fetchNotes(),
+        fetchLeaderboard(),
+      ]);
+      setNotes(notesData);
+      setUsers(usersData);
+      setIsLoading(false);
+    };
+    loadData();
+  }, []);
   
   const handleSaveNote = (note: Note) => {
     if (!savedNotes.find((n) => n.id === note.id)) {
@@ -21,8 +40,15 @@ export default function Home() {
     }
   };
 
-  // Mock current user
-  const currentUser = dummyUsers[0];
+  // Mock current user (will be replaced with real auth later)
+  const currentUser = users[0] || {
+    id: "1",
+    name: "Guest",
+    avatar: "https://i.pravatar.cc/150?u=guest",
+    earnings: 0,
+    notesPosted: 0,
+    totalUpvotes: 0,
+  };
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     const threshold = 100;
@@ -44,6 +70,17 @@ export default function Home() {
       }
     }
   };
+
+  if (isLoading) {
+    return (
+      <main className="fixed inset-0 overflow-hidden bg-background text-foreground flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading notes...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-background text-foreground">
@@ -84,7 +121,7 @@ export default function Home() {
             transition={{ duration: 0.3 }}
           >
             <HomeView 
-              notes={dummyNotes} 
+              notes={notes} 
               onNoteClick={(note) => setActiveNote(note)} 
               onSave={handleSaveNote}
             />
@@ -112,7 +149,7 @@ export default function Home() {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="absolute inset-0 z-20 bg-background"
             >
-              <SocialView users={dummyUsers} currentUser={currentUser} />
+              <SocialView users={users} currentUser={currentUser} />
             </motion.div>
           )}
         </AnimatePresence>
