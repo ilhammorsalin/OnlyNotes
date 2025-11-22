@@ -4,14 +4,17 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Note, User } from "@/lib/data";
 import { fetchNotes, fetchLeaderboard } from "@/lib/supabase-client";
+import { useAuth } from "@/contexts/AuthContext";
 import HomeView from "@/components/HomeView";
 import ReadingMode from "@/components/ReadingMode";
 import LibraryView from "@/components/LibraryView";
 import SocialView from "@/components/SocialView";
+import LoginModal from "@/components/LoginModal";
 
 type ViewState = "home" | "library" | "social";
 
 export default function Home() {
+  const { user, profile, isLoading: authLoading } = useAuth();
   const [viewState, setViewState] = useState<ViewState>("home");
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [savedNotes, setSavedNotes] = useState<Note[]>([]);
@@ -40,8 +43,15 @@ export default function Home() {
     }
   };
 
-  // Mock current user (will be replaced with real auth later)
-  const currentUser = users[0] || {
+  // Use authenticated user's profile or fallback to guest
+  const currentUser = profile ? {
+    id: profile.id,
+    name: profile.username || "User",
+    avatar: profile.avatar_url || "https://i.pravatar.cc/150?u=guest",
+    earnings: 0,
+    notesPosted: 0,
+    totalUpvotes: profile.total_score || 0,
+  } : users[0] || {
     id: "1",
     name: "Guest",
     avatar: "https://i.pravatar.cc/150?u=guest",
@@ -164,6 +174,12 @@ export default function Home() {
           />
         )}
       </AnimatePresence>
+
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={!authLoading && !user} 
+        onClose={() => {}} 
+      />
     </main>
   );
 }
