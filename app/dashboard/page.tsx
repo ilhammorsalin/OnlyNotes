@@ -30,15 +30,19 @@ export default async function NotesDashboard() {
   }
 
   // Fetch the user's profile to check role
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
 
-  if (!profile) {
+  if (!profile || profileError) {
     redirect('/')
   }
+
+  // Explicitly type the profile to help TypeScript
+  type ProfileType = Database['public']['Tables']['profiles']['Row']
+  const userProfile = profile as ProfileType
 
   // Fetch initial list of notes
   // If user is admin, we'll show both My Notes and Global Notes options
@@ -66,8 +70,8 @@ export default async function NotesDashboard() {
     .eq('author_id', user.id)
     .order('created_at', { ascending: false })
 
-  // TypeScript helper: profile is non-null here after redirect check
-  const isAdmin = profile.is_admin || false
+  // Check if user is admin using both is_admin and role fields
+  const isAdmin = (userProfile.is_admin || userProfile.role === 'admin') || false
   const { data: globalNotes } = isAdmin ? await supabase
     .from('notes')
     .select(`
@@ -95,7 +99,7 @@ export default async function NotesDashboard() {
   return (
     <NotesDashboardClient
       user={user}
-      profile={profile}
+      profile={userProfile}
       initialMyNotes={myNotes || []}
       initialGlobalNotes={globalNotes || []}
       isAdmin={isAdmin}

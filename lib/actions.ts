@@ -1,35 +1,34 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient as createSSRClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { Database } from './supabase'
+import type { Database } from './supabase'
 
 // Create a Supabase client with the user's auth session
 async function createServerClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  
   const cookieStore = await cookies()
-  const authToken = cookieStore.get('sb-access-token')?.value
-  const refreshToken = cookieStore.get('sb-refresh-token')?.value
-
-  const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: authToken ? {
-        Authorization: `Bearer ${authToken}`
-      } : {}
+  
+  return createSSRClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing user sessions.
+          }
+        },
+      },
     }
-  })
-
-  // Set the session if we have tokens
-  if (authToken && refreshToken) {
-    await supabase.auth.setSession({
-      access_token: authToken,
-      refresh_token: refreshToken
-    })
-  }
-
-  return supabase
+  )
 }
 
 // Get the current user
@@ -52,7 +51,8 @@ async function getCurrentProfile() {
     .eq('id', user.id)
     .single()
   
-  return profile
+  // Type assertion to help TypeScript
+  return profile as Database['public']['Tables']['profiles']['Row'] | null
 }
 
 // Add a new note
@@ -72,6 +72,7 @@ export async function addNoteAction(data: {
 
   const { data: note, error } = await supabase
     .from('notes')
+    // @ts-ignore - Database type inference issue with createServerClient return type
     .insert({
       author_id: user.id,
       course_id: data.course_id,
@@ -119,12 +120,17 @@ export async function updateNoteAction(
     return { error: 'Note not found' }
   }
 
-  if (note.author_id !== user.id && !profile?.is_admin) {
+  // Check authorization - must be author or admin
+  const isAuthor = (note as any).author_id === user.id
+  const isAdmin = profile?.is_admin || profile?.role === 'admin'
+  
+  if (!isAuthor && !isAdmin) {
     return { error: 'Not authorized to update this note' }
   }
 
   const { data: updatedNote, error } = await supabase
     .from('notes')
+    // @ts-ignore - Database type inference issue with createServerClient return type
     .update(data)
     .eq('id', id)
     .select()
@@ -143,7 +149,8 @@ export async function adminDeleteNote(id: string) {
   const profile = await getCurrentProfile()
   
   // CRITICAL: Must check if the user is an admin
-  if (!profile?.is_admin) {
+  const isAdmin = profile?.is_admin || profile?.role === 'admin'
+  if (!isAdmin) {
     return { error: 'Not authorized. Admin access required.' }
   }
 
@@ -172,6 +179,7 @@ export async function saveNoteAction(noteId: string) {
     // 1. Insert swipe record with action 'RIGHT'
     const { error: swipeError } = await supabase
       .from('swipes')
+      // @ts-ignore - Database type inference issue with createServerClient return type
       .insert({
         user_id: user.id,
         note_id: noteId,
@@ -187,6 +195,7 @@ export async function saveNoteAction(noteId: string) {
     // 2. Insert into unlocks table for permanent save
     const { error: unlockError } = await supabase
       .from('unlocks')
+      // @ts-ignore - Database type inference issue with createServerClient return type
       .insert({
         user_id: user.id,
         note_id: noteId

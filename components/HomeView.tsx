@@ -13,7 +13,8 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { X, Heart, BookOpen } from "lucide-react";
-import { saveNoteAction } from "@/lib/actions";
+import { saveNoteAction, recordSwipeLeft } from "@/app/actions/notes";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HomeViewProps {
   notes: Note[];
@@ -22,13 +23,33 @@ interface HomeViewProps {
 }
 
 export default function HomeView({ notes, onNoteClick, onSave }: HomeViewProps) {
+  const { user } = useAuth();
   const [visibleNotes, setVisibleNotes] = useState(notes);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const removeNote = (id: string, direction: "left" | "right") => {
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const removeNote = async (id: string, direction: "left" | "right") => {
     setVisibleNotes((prev) => prev.filter((note) => note.id !== id));
-    if (direction === "right") {
-      const note = visibleNotes.find((n) => n.id === id);
-      if (note) onSave(note);
+    const note = visibleNotes.find((n) => n.id === id);
+    
+    if (note && user) {
+      if (direction === "right") {
+        // Call server action to save note
+        const result = await saveNoteAction(id);
+        if (result.success) {
+          onSave(note);
+          showToast("Note Unlocked! Saved to your library 🎉");
+        } else {
+          showToast(result.error || "Failed to save note");
+        }
+      } else if (direction === "left") {
+        // Call server action to record left swipe
+        await recordSwipeLeft(id);
+      }
     }
   };
 
@@ -56,6 +77,20 @@ export default function HomeView({ notes, onNoteClick, onSave }: HomeViewProps) 
           <p className="text-sm">Check back later.</p>
         </div>
       )}
+      
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg z-50"
+          >
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

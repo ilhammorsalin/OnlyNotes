@@ -1,0 +1,12 @@
+Properly merge main branch to resolve GitHub conflict state
+
+This creates a proper two-parent merge commit to resolve the GitHub
+"dirty" mergeable_state. Previous commit b7b7e7d had the right file
+contents but was not a true merge commit.
+
+Conflicts resolved:
+- components/HomeView.tsx: Keep enhanced implementation with toast notifications
+- components/SocialView.tsx: Keep inline role badge
+- lib/supabase.ts: Add role field while maintaining is_admin
+
+Co-authored-by: shafiqimtiaz <57990344+shafiqimtiaz@users.noreply.github.com>

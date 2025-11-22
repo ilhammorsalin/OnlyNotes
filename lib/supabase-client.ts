@@ -173,10 +173,10 @@ export async function recordUnlock(
   return true;
 }
 
-// Get user's saved notes (swiped RIGHT)
+// Get user's saved notes (unlocked notes)
 export async function fetchSavedNotes(userId: string): Promise<Note[]> {
-  const { data: swipes, error } = await supabase
-    .from('swipes')
+  const { data: unlocks, error } = await supabase
+    .from('unlocks')
     .select(`
       note_id,
       notes (
@@ -199,8 +199,7 @@ export async function fetchSavedNotes(userId: string): Promise<Note[]> {
       )
     `)
     .eq('user_id', userId)
-    .eq('action', 'RIGHT')
-    .order('created_at', { ascending: false });
+    .order('triggered_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching saved notes:', error);
@@ -208,10 +207,10 @@ export async function fetchSavedNotes(userId: string): Promise<Note[]> {
   }
 
   // Transform to Note interface
-  return (swipes || [])
-    .filter((swipe: any) => swipe.notes)
-    .map((swipe: any) => {
-      const note = swipe.notes;
+  return (unlocks || [])
+    .filter((unlock: any) => unlock.notes)
+    .map((unlock: any) => {
+      const note = unlock.notes;
       return {
         id: note.id,
         title: note.title,

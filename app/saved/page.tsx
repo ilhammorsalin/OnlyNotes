@@ -59,10 +59,11 @@ export default async function SavedNotesPage() {
     .order('triggered_at', { ascending: false })
 
   // Transform the data to flatten the notes structure
-  const notes = (savedNotes || []).map((unlock) => ({
+  // Type assertion needed due to Supabase's nested query typing
+  const notes = (savedNotes || []).map((unlock: any) => ({
     ...unlock.notes,
     savedAt: unlock.triggered_at,
-  })).filter((note) => note.id) // Filter out any null notes
+  })).filter((note: any) => note.id) // Filter out any null notes
 
   return (
     <SavedNotesClient

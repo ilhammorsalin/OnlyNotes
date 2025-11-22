@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Note, User } from "@/lib/data";
-import { fetchNotes, fetchLeaderboard } from "@/lib/supabase-client";
+import { fetchNotes, fetchLeaderboard, fetchSavedNotes } from "@/lib/supabase-client";
 import { useAuth } from "@/contexts/AuthContext";
 import HomeView from "@/components/HomeView";
 import ReadingMode from "@/components/ReadingMode";
 import LibraryView from "@/components/LibraryView";
 import SocialView from "@/components/SocialView";
 import LoginModal from "@/components/LoginModal";
+import { supabase } from "@/lib/supabase";
 
 type ViewState = "home" | "library" | "social";
 
@@ -36,6 +37,48 @@ export default function Home() {
     };
     loadData();
   }, []);
+
+  // Fetch saved notes when user is available
+  useEffect(() => {
+    const loadSavedNotes = async () => {
+      if (user) {
+        const saved = await fetchSavedNotes(user.id);
+        setSavedNotes(saved);
+      }
+    };
+    loadSavedNotes();
+  }, [user]);
+
+  // Real-time subscription to unlocks table
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('unlocks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'unlocks',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async () => {
+          // Reload saved notes when a new unlock is added
+          const saved = await fetchSavedNotes(user.id);
+          setSavedNotes(saved);
+          
+          // Reload users to get updated scores
+          const usersData = await fetchLeaderboard();
+          setUsers(usersData);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
   
   const handleSaveNote = (note: Note) => {
     if (!savedNotes.find((n) => n.id === note.id)) {

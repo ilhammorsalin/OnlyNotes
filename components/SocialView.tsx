@@ -4,11 +4,12 @@ import { User } from "@/lib/data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Upload, DollarSign, FileText, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ProfileBadge from "@/components/ProfileBadge";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SocialViewProps {
   users: User[];
@@ -16,7 +17,11 @@ interface SocialViewProps {
 }
 
 export default function SocialView({ users, currentUser }: SocialViewProps) {
+  const { profile } = useAuth();
   const sortedUsers = [...users].sort((a, b) => b.totalUpvotes - a.totalUpvotes);
+
+  // Determine user role from profile
+  const userRole = profile?.role || (profile?.is_admin ? 'admin' : 'user');
 
   return (
     <div className="h-full w-full bg-background flex flex-col pt-12 px-4 pb-4">
@@ -90,10 +95,18 @@ export default function SocialView({ users, currentUser }: SocialViewProps) {
                   <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
                 </Avatar>
                 <h2 className="text-2xl font-bold">{currentUser.name}</h2>
-                <div className="flex items-center gap-2">
-                  <p className="text-muted-foreground">University of Tech</p>
-                  <ProfileBadge />
-                </div>
+                <p className="text-muted-foreground mb-2">University of Tech</p>
+                
+                {/* Role Badge */}
+                {userRole === 'admin' ? (
+                  <Badge variant="destructive" className="text-xs font-bold uppercase">
+                    ADMIN
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs font-bold uppercase bg-blue-500/20 text-blue-500 hover:bg-blue-500/30">
+                    USER
+                  </Badge>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4 w-full mb-8">
